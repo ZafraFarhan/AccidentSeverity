@@ -1,0 +1,2 @@
+echo "* text=auto" > .gitattributes
+echo "*.py text eol=lf" >> .gitattributes
