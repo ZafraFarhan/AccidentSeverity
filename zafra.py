@@ -25,6 +25,7 @@ import seaborn as sns
 import numpy as np
 import scipy.stats as ss
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder
+from sklearn.preprocessing import StandardScaler
 
 df.shape
 
@@ -109,6 +110,69 @@ df['Light_Conditions'].value_counts()
 
 
 
+category_mapping = {
+    'Car': 'Car',
+    'Taxi/Private hire car': 'Car',
+    'Motorcycle over 500cc': 'Motorcycle',
+    'Van / Goods 3.5 tonnes mgw or under': 'Van',
+    'Goods over 3.5t. and under 7.5t': 'Other',
+    'Motorcycle 125cc and under': 'Motorcycle',
+    'Motorcycle 50cc and under': 'Motorcycle',
+    'Bus or coach (17 or more pass seats)': 'Bus',
+    'Goods 7.5 tonnes mgw and over': 'Other',
+    'Other vehicle': 'Other',
+    'Motorcycle over 125cc and up to 500cc': 'Motorcycle',
+    'Agricultural vehicle': 'Other',
+    'Minibus (8 - 16 passenger seats)': 'Bus',
+    'Pedal cycle': 'Pedal cycle',
+    'Ridden horse': 'Other'
+}
+
+# Map values in 'Vehicle_Type' column to the specified categories
+df['Vehicle_Type'] = df['Vehicle_Type'].map(category_mapping)
+
+df['Vehicle_Type'].unique()
+
+category_mapping_light = {
+    'Daylight': 'Good',
+    'Darkness - lights lit': 'Good',
+    'Darkness - no lighting': 'Poor',
+    'Darkness - lighting unknown': 'Unknown',
+    'Darkness - lights unlit': 'Poor'
+}
+
+# Map values in 'Light_Conditions' column to the specified categories
+df['Light_Conditions'] = df['Light_Conditions'].map(category_mapping_light)
+
+df['Light_Conditions'].unique()
+
+# Mapping between Road Surface Conditions and corresponding Weather Conditions ttto fill the missing values
+conditions_mapping = {
+    'Dry': 'Fine no high winds',
+    'Wet or damp': 'Raining no high winds',
+    'Snow': 'Snowing no high winds',
+    'Snow': 'Snowing + high winds'
+}
+
+df['Weather_Conditions'].fillna(df['Road_Surface_Conditions'].map(conditions_mapping), inplace=True)
+
+category_mapping_junction = {
+    'T or staggered junction': 'T or Staggered Junction',
+    'Crossroads': 'Crossroads',
+    'Not at junction or within 20 metres': 'Not at Junction',
+    'Roundabout': 'Roundabout',
+    'Mini-roundabout': 'Roundabout',
+    'More than 4 arms (not roundabout)': 'Crossroads',
+    'Private drive or entrance': 'Slip Roads and Private Access',
+    'Slip road': 'Slip Roads and Private Access',
+    'Other junction': 'Other Junction Types'
+}
+
+# Map values in 'Junction_Detail' column to the specified categories
+df['Junction_Detail'] = df['Junction_Detail'].map(category_mapping_junction)
+
+df['Junction_Detail'].unique()
+
 
 
 """Encoding"""
@@ -116,8 +180,6 @@ df['Light_Conditions'].value_counts()
 df.info()
 
 len(df['Police_Force'].unique())
-
-df1=df.copy()
 
 df
 
@@ -144,30 +206,93 @@ print(df)
 df['Accident Date'] = pd.to_datetime(df['Accident Date'], format='%m/%d/%Y')
 df['Month'] = df['Accident Date'].dt.strftime('%B')
 
-df
-
 df.drop(['Time','Accident Date','hour'], axis=1, inplace=True)
 df.info()
 
+numerical_columns = ['Number_of_Casualties', 'Number_of_Vehicles', 'Speed_limit']
+
+# Initialize the StandardScaler
+scaler = StandardScaler()
+
+# Fit the scaler and transform the numerical columns
+df[numerical_columns] = scaler.fit_transform(df[numerical_columns])
+
+# Check the standardized numerical columns
+print(df[numerical_columns].head())
 
 
-
-
-"""Label Encoding"""
 
 numeric_data = df.select_dtypes(include=[np.number])
 categorical_data = df.select_dtypes(include=[object])
 
-#Replace words with numbers so that analyses can be performed.
-for i in categorical_data.columns:
-    categorical_data[i] = LabelEncoder().fit_transform(categorical_data[i])
+# OneHotEncode the categorical data
+onehot_encoder = OneHotEncoder(drop='first', sparse=False)
+encoded_categorical_data = onehot_encoder.fit_transform(categorical_data)
 
-df = pd.concat([categorical_data, numeric_data], axis = 1)
-df.head()
+# Convert the encoded data back to a DataFrame
+encoded_categorical_df = pd.DataFrame(encoded_categorical_data, columns=onehot_encoder.get_feature_names_out(categorical_data.columns))
+
+# Combine the encoded data with numeric data
+combined_data = pd.concat([numeric_data.reset_index(drop=True), encoded_categorical_df.reset_index(drop=True)], axis=1)
+
+"""*https://letsdatascience.com/frequency-encoding/*"""
+
+# Frequency encoding
+location_counts = df['Local_Authority_(District)'].value_counts()
+combined_data['location_encoded'] = df['Local_Authority_(District)'].map(location_counts)
+
+
+location_counts2 = df['Vehicle_Type'].value_counts()
+combined_data['Vehicle_Type_encoded'] = df['Vehicle_Type'].map(location_counts2)
+
+!pip install category_encoders
+
+df.info()
+
+df.isnull().sum()
+
+import category_encoders as ce
+
+target = 'Accident_Severity'
+
+# List of categorical columns
+categorical_columns = [
+    'Day_of_Week',
+    'Junction_Control',
+    'Junction_Detail',
+    'Light_Conditions',
+    'Local_Authority_(District)',
+    'Carriageway_Hazards',
+    'Police_Force',
+    'Road_Surface_Conditions',
+    'Road_Type',
+    'Urban_or_Rural_Area',
+    'Weather_Conditions',
+    'Vehicle_Type',
+    'Time_segment',
+    'Month'
+]
+
+severity_mapping = {'Slight': 1, 'Serious': 2, 'Fatal': 3}
+df['Accident_Severity'] = df['Accident_Severity'].map(severity_mapping)
+
+# Initialize TargetEncoder
+encoder = ce.TargetEncoder(cols=categorical_columns)
+
+# Fit and transform the categorical columns
+df_encoded = encoder.fit_transform(df[categorical_columns], df[target])
+
+# Combine the encoded columns with the rest of the DataFrame
+combined_data = pd.concat([df.drop(columns=categorical_columns), df_encoded], axis=1)
+
+# Check the resulting DataFrame
+print(combined_data.head())
+
+combined_data
 
 
 
-
+combined_data.isnull().sum()
 
 
 
@@ -175,8 +300,7 @@ df.head()
 
 """Data Split"""
 
-#X = combined_data
-X = df.drop('Accident_Severity', axis=1)
+X = combined_data
 y = df['Accident_Severity']
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
@@ -193,8 +317,6 @@ X_test = X_test.fillna(mode_values)
 
 X_train.isnull().sum()
 
-X_train.shape
-
 """Feature Engineering"""
 
 X_train
@@ -209,6 +331,8 @@ X_train
 
 
 
+numeric_data=X_train[['Number_of_Casualties', 'Number_of_Vehicles', 'Speed_limit']]
+
 corr_matrix = numeric_data.corr()
 plt.figure(figsize=(10, 6))
 sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt=".2f")
@@ -217,30 +341,11 @@ plt.show()
 
 
 
-
-
-from sklearn.feature_selection import SelectKBest, chi2
-from sklearn.datasets import load_iris
-
-# Apply feature selection
-selector = SelectKBest(score_func=chi2, k=2)
-X_new = selector.fit_transform(X_train, y_train)
-
-# Get the selected feature names
-feature_names = X_train.columns[selector.get_support()]
-print("Selected features:", feature_names)
-
-# Get selected feature indices
-selected_features = selector.get_support(indices=True)
-print("Selected features:", selected_features)
-
-
-
-
-
 """**Factor Analysis**"""
 
 !pip install factor_analyzer
+
+X_train.info()
 
 """**KAISER-MEYER-OLKIN (KMO) TEST**
 
@@ -269,7 +374,11 @@ plt.xlabel('Factors')
 plt.ylabel('Eigen Value')
 plt.grid()
 
-fa = FactorAnalyzer(n_factors=5,rotation='varimax')
+
+
+
+
+fa = FactorAnalyzer(n_factors=4,rotation='varimax')
 fa.fit(X_train)
 print(pd.DataFrame(fa.loadings_,index=X_train.columns))
 
@@ -435,3 +544,6 @@ plt.xticks(range(2, 15))
 plt.xlabel("Number of Clusters")
 plt.ylabel("Silhouette Coefficient")
 plt.show()
+
+
+
