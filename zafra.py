@@ -1,4 +1,3 @@
-
 import requests
 import pandas as pd
 
@@ -187,52 +186,6 @@ df.info()
 
 
 
-# import pandas as pd
-
-# # Sample dictionary to categorize by region
-# region_categories = {
-#     "Greater London": ['Kensington and Chelsea', 'Hammersmith and Fulham', 'Westminster', 'Hounslow',
-#                        'City of London', 'Tower Hamlets', 'Hackney', 'Camden', 'Southwark', 'Brent',
-#                        'Haringey', 'Islington', 'Barnet', 'Ealing', 'Newham', 'London Airport (Heathrow)',
-#                        'Hillingdon', 'Waltham Forest', 'Redbridge', 'Barking and Dagenham', 'Havering',
-#                        'Lambeth', 'Croydon', 'Wandsworth', 'Bromley', 'Lewisham', 'Greenwich', 'Bexley',
-#                        'Harrow', 'Enfield', 'Sutton', 'Merton', 'Kingston upon Thames', 'Richmond upon Thames'],
-#     "North West England": ['Eden', 'Copeland', 'South Lakeland', 'Barrow-in-Furness', 'Allerdale',
-#                            'Carlisle', 'Fylde', 'Blackpool', 'Wyre', 'Lancaster', 'Chorley',
-#                            'West Lancashire', 'South Ribble', 'Preston', 'Blackburn with Darwen',
-#                            'Hyndburn', 'Ribble Valley', 'Burnley', 'Pendle', 'Rossendale', 'Wirral',
-#                            'Sefton', 'St. Helens', 'Liverpool', 'Knowsley', 'Manchester', 'Salford',
-#                            'Tameside', 'Stockport', 'Bolton', 'Wigan', 'Trafford', 'Bury', 'Rochdale',
-#                            'Oldham'],
-#     "North East England": ['Wansbeck', 'Blyth Valley', 'North Tyneside', 'Newcastle upon Tyne', 'Tynedale',
-#                            'Alnwick', 'South Tyneside', 'Gateshead', 'Castle Morpeth', 'Sunderland',
-#                            'Berwick-upon-Tweed', 'Northumberland', 'Durham', 'County Durham', 'Easington',
-#                            'Chester-le-Street', 'Derwentside', 'Wear Valley', 'Teesdale', 'Darlington',
-#                            'Sedgefield'],
-#     "West Midlands": ['Birmingham', 'Wolverhampton', 'Walsall', 'Dudley', 'Sandwell', 'Solihull',
-#                       'Coventry', 'Lichfield', 'Stafford', 'Stoke-on-Trent', 'East Staffordshire',
-#                       'Newcastle-under-Lyme', 'Cannock Chase', 'South Staffordshire', 'Tamworth',
-#                       'Staffordshire Moorlands', 'Wychavon', 'Malvern Hills', 'Worcester', 'Wyre Forest',
-#                       'Herefordshire, County of', 'Shropshire', 'Redditch', 'Bromsgrove', 'South Shropshire',
-#                       'North Shropshire', 'Shrewsbury and Atcham', 'Oswestry', 'Telford and Wrekin',
-#                       'Bridgnorth', 'Stratford-upon-Avon', 'Warwick', 'North Warwickshire', 'Rugby',
-#                       'Nuneaton and Bedworth'],
-# }
-
-# # Function to categorize regions
-# def categorize_region(local_authority):
-#     for region, areas in region_categories.items():
-#         if local_authority in areas:
-#             return region
-#     return 'Other'
-
-
-# # Apply the categorization function to the DataFrame
-# df['Region'] = df['Local_Authority_(District)'].apply(categorize_region)
-
-# # Display the DataFrame with the new 'Region' column
-# print(df)
-
 import pandas as pd
 
 # Sample dictionary to categorize by police authorities
@@ -274,6 +227,35 @@ df['Rush_Hour'] = df['Rush_Hour'].astype(object)
 df['Rush_Hour'].dtype
 df.info()
 
+import pandas as pd
+from scipy.stats import chi2_contingency
+
+# Assuming 'df' is your DataFrame
+categorical_vars = [
+    'Day_of_Week', 'Junction_Control', 'Junction_Detail', 'Light_Conditions',
+    'Carriageway_Hazards', 'Road_Surface_Conditions', 'Road_Type',
+    'Urban_or_Rural_Area', 'Weather_Conditions', 'Vehicle_Type',
+    'Rush_Hour', 'Month', 'Police_Region'
+]
+
+# Initialize a dictionary to store the results
+results = {}
+
+# Iterate through categorical variables
+for var in categorical_vars:
+    # Create a contingency table
+    contingency_table = pd.crosstab(df[var], df['Accident_Severity'])
+
+    # Perform the Chi-Square test
+    chi2, p, _, _ = chi2_contingency(contingency_table)
+
+    # Store the result
+    results[var] = p
+
+# Display the results
+results_df = pd.DataFrame(list(results.items()), columns=['Variable', 'p-value'])
+print(results_df)
+
 """Data Split"""
 
 y = df['Accident_Severity']
@@ -308,7 +290,102 @@ X_train.isnull().sum()
 
 X_test.isnull().sum()
 
+descriptive_df = pd.concat([X_train, y_train], axis=1)
+descriptive_df.head()
 
+
+
+"""**Standardize**"""
+
+from sklearn.preprocessing import StandardScaler
+
+numerical_columns = ['Number_of_Casualties', 'Number_of_Vehicles', 'Speed_limit']
+
+# Initialize the StandardScaler
+scaler = StandardScaler()
+
+# Fit the scaler and transform the numerical columns
+X_train[numerical_columns] = scaler.fit_transform(X_train[numerical_columns])
+
+
+# Check the standardized numerical columns
+print(X_train[numerical_columns].head())
+
+
+
+X_train.columns
+
+X_train.info()
+
+X_train.head()
+
+
+
+
+
+"""**Target Encoding**"""
+
+!pip install category_encoders
+
+y_train.head()
+
+
+
+import pandas as pd
+import category_encoders as ce
+
+# Load your DataFrame
+# df = pd.read_csv('your_dataset.csv') # Uncomment and adjust if needed
+
+# Define target variable
+target = 'Accident_Severity'
+
+# Define categorical columns
+categorical_columns = X_train.select_dtypes(include=['object']).columns
+
+# Initialize TargetEncoder
+encoder = ce.TargetEncoder(cols=categorical_columns)
+
+if y_train[target].dtype == 'object':
+    y_train[target] = y_train[target].map({'Slight': 1, 'Serious': 2, 'Fatal': 3})
+
+
+# Fit and transform the categorical columns
+df_encoded = encoder.fit_transform(X_train[categorical_columns], y_train)
+
+# Combine the encoded columns with the rest of the DataFrame
+combined_data = pd.concat([X_train.drop(columns=categorical_columns), df_encoded], axis=1)
+
+# Check the resulting DataFrame
+print(combined_data.head())
+
+from google.colab import files
+
+# Save the DataFrame to a CSV file
+combined_data.to_csv('combined_data.csv', index=False)
+
+# Now you can download the file
+files.download('combined_data.csv')
+
+y_train.head()
+
+from google.colab import files
+
+# Save the DataFrame to a CSV file
+y_train.to_csv('y_train.csv', index=False)
+
+# Now you can download the file
+files.download('y_train.csv')
+
+combined_data.info()
+
+combined_data.head()
+
+X_train.head()
+
+
+
+"""**Chu Square Test**"""
 
 import pandas as pd
 from scipy.stats import chi2_contingency
@@ -357,67 +434,15 @@ print(significant_associations)
 
 results.to_csv('significant_associations.csv', index=False)
 
-from google.colab import files
-files.download('significant_associations.csv')
 
-
-
-"""**Standardize**"""
-
-from sklearn.preprocessing import StandardScaler
-
-numerical_columns = ['Number_of_Casualties', 'Number_of_Vehicles', 'Speed_limit']
-
-# Initialize the StandardScaler
-scaler = StandardScaler()
-
-# Fit the scaler and transform the numerical columns
-X_train[numerical_columns] = scaler.fit_transform(X_train[numerical_columns])
-
-
-# Check the standardized numerical columns
-print(X_train[numerical_columns].head())
-
-
-
-
-
-
-
-"""**One Hot Encoding**"""
-
-from sklearn.preprocessing import OneHotEncoder
-
-# Selecting categorical and numerical columns
-categorical_data = X_train.select_dtypes(include=[object])
-numerical_columns = X_train.select_dtypes(exclude=[object]).columns
-
-# Initialize the OneHotEncoder
-encoder = OneHotEncoder(sparse=False)
-
-# Fit and transform the categorical data
-encoded_data = encoder.fit_transform(categorical_data)
-
-# Get the new column names
-encoded_columns = encoder.get_feature_names_out(categorical_data.columns)
-
-# Create a DataFrame with the encoded data
-df_encoded = pd.DataFrame(encoded_data, columns=encoded_columns)
-
-# Re-index the encoded DataFrame to match the original DataFrame
-df_encoded.index = X_train.index
-
-# Concatenate the encoded categorical columns to the numerical columns
-X_train_encoded = pd.concat([df_encoded, X_train[numerical_columns]], axis=1)
-
-# Verify the result
-print(X_train_encoded)
-
-print(X_train_encoded.isnull().sum())
 
 
 
 """**MCA**"""
+
+X_train_encoded = combined_data.copy()
+
+X_train_encoded.head()
 
 categorical_data =X_train_encoded.drop(columns= ['Number_of_Casualties', 'Number_of_Vehicles', 'Speed_limit'])
 categorical_columns = X_train_encoded.columns
@@ -444,43 +469,47 @@ plt.legend()
 plt.grid(True)
 plt.show()
 
-explained_inertia
-
 import prince
+import pandas as pd
 
-# Assume X_train_encoded is your mixed data DataFrame
-# Initialize the FAMD object
-famd = prince.FAMD(n_components=48, random_state=42)
+# Assuming 'categorical_data' and 'categorical_columns' are already defined as in your provided code
 
-# Fit and transform the data
-X_reduced = famd.fit_transform(X_train_encoded)
+# Perform MCA with the optimal number of components (5)
+mca = prince.MCA(n_components=6, random_state=42)
+mca = mca.fit(categorical_data)
 
-# Create a DataFrame from the reduced data
-X_reduced_df = pd.DataFrame(X_reduced)
+# Transform the data
+mca_transformed = mca.transform(categorical_data)
 
-# Sample the reduced data
-X_train_encoded_sub = X_reduced_df.sample(frac=0.1, random_state=42)
+from sklearn_extra.cluster import KMedoids
+from sklearn.metrics import silhouette_score
+import matplotlib.pyplot as plt
 
-# Range of number of clusters to try
-cluster_range = range(2, 11)
+# Define the range of clusters to test
+range_n_clusters = range(2, 11)  # For example, from 2 to 10 clusters
 silhouette_scores = []
 
-# Iterate over the range of clusters and calculate silhouette scores
-for n_clusters in cluster_range:
+# Iterate over the range of clusters
+for n_clusters in range_n_clusters:
     kmedoids = KMedoids(n_clusters=n_clusters, random_state=42)
-    kmedoids.fit(X_train_encoded_sub)
-    labels = kmedoids.labels_
-    score = silhouette_score(X_train_encoded_sub, labels)
-    silhouette_scores.append(score)
-    print(f'Number of clusters: {n_clusters}, Silhouette Score: {score:.3f}')
+    cluster_labels = kmedoids.fit_predict(mca_transformed)
 
-# Plot the silhouette scores for different numbers of clusters
+    silhouette_avg = silhouette_score(mca_transformed, cluster_labels)
+    silhouette_scores.append(silhouette_avg)
+    print(f'For n_clusters = {n_clusters}, the average silhouette score is {silhouette_avg:.2f}')
+
+# Plot the silhouette scores
 plt.figure(figsize=(10, 6))
-plt.plot(cluster_range, silhouette_scores, marker='o')
-plt.title('Silhouette Scores for Different Numbers of Clusters')
+plt.plot(range_n_clusters, silhouette_scores, marker='o')
 plt.xlabel('Number of clusters')
 plt.ylabel('Silhouette Score')
+plt.title('Silhouette Scores for different numbers of clusters')
+plt.grid(True)
 plt.show()
+
+
+
+explained_inertia
 
 """**Clustering**"""
 
@@ -490,7 +519,7 @@ plt.show()
 cluster_range = range(2, 5)
 silhouette_scores = []
 
-X_train_encoded_sub = X_train_encoded.sample(frac=0.3, random_state=42)
+X_train_encoded_sub = combined_data.sample(frac=0.3, random_state=42)
 
 # Iterate over the range of clusters and calculate silhouette scores
 for n_clusters in cluster_range:
@@ -515,86 +544,38 @@ print(f'Optimal number of clusters: {optimal_clusters}')
 
 
 
-"""**Outliers**"""
+"""**DBSCAN outliers**"""
 
-from sklearn_extra.cluster import KMedoids
 import numpy as np
+from sklearn.datasets import make_blobs
+from sklearn.cluster import DBSCAN
 
-# Example clustering
-kmedoids = KMedoids(n_clusters=, random_state=42)
-kmedoids.fit(X_train_encoded_sub)
-labels = kmedoids.labels_
-cluster_centers = kmedoids.cluster_centers_
+eps = 3
+min_samples = 5
 
-# Calculate distances to cluster centers
-distances = np.linalg.norm(X_train_encoded_sub.values - cluster_centers[labels], axis=1)
+# Create the DBSCAN model
+dbscan = DBSCAN(eps=eps, min_samples=min_samples)
 
-# Define a threshold for outliers
-threshold = np.percentile(distances, 95)  # e.g., top 5% distance
+# Fit the model to the data
+dbscan.fit(X_train_encoded)
 
-# Identify outliers
-outliers = distances > threshold
-outlier_records = X_train_encoded_sub[outliers]
-print(outlier_records)
+# Get the labels of the data points
+labels = dbscan.labels_
 
+# Identify the outliers
+outliers = np.where(labels == -1)[0]
 
+# Print the number of outliers
+print("Number of outliers:", len(outliers))
 
-from sklearn.neighbors import NearestNeighbors
-import numpy as np
-import matplotlib.pyplot as plt
-
-# Define the range of k values
-k_range = range(3, 10)  # Adjust the range as needed
-mean_distances_list = []
-
-# Iterate over the range of k values
-for k in k_range:
-    # Initialize and fit the KNN model
-    knn = NearestNeighbors(n_neighbors=k)
-    knn.fit(X_train_encoded)
-
-    # Calculate distances to k-nearest neighbors
-    distances, _ = knn.kneighbors(X_train_encoded)
-
-    # Compute the mean distance to neighbors
-    mean_distances = np.mean(distances, axis=1)
-    mean_distances_list.append(np.mean(mean_distances))
-
-# Plot the mean distances for different k values
-plt.figure(figsize=(10, 6))
-plt.plot(k_range, mean_distances_list, marker='o')
-plt.title('Mean Distance to Neighbors vs. Number of Neighbors')
-plt.xlabel('Number of Neighbors')
-plt.ylabel('Mean Distance')
+# Plot the data with the outliers highlighted
+plt.scatter(X[:, 0], X[:, 1], c=labels)
+plt.scatter(X[outliers, 0], X[outliers, 1], c="red", marker="x")
 plt.show()
 
-# Print out the k with the minimum mean distance
-optimal_k = k_range[np.argmin(mean_distances_list)]
-print(f'Optimal number of neighbors: {optimal_k}')
 
-from sklearn.neighbors import NearestNeighbors
-import numpy as np
 
-# Fit KNN model
-knn = NearestNeighbors(n_neighbors=6)  # Adjust the number of neighbors as needed
-knn.fit(X_train_encoded)
 
-# Calculate distances to k-nearest neighbors
-distances, _ = knn.kneighbors(X_train_encoded)
-
-# Compute the mean distance to neighbors
-mean_distances = np.mean(distances, axis=1)
-
-# Define an outlier threshold
-threshold = np.percentile(mean_distances, 95)  # Top 5% as outliers
-
-# Identify outliers
-outliers = mean_distances > threshold
-outlier_records = X_train_encoded[outliers]
-
-print(outlier_records)
-
-10772
 
 """**Descriptive Analysis**"""
 
@@ -613,10 +594,21 @@ plt.show()
 
 """Rush Hour"""
 
+import matplotlib.pyplot as plt
+
+# Sample data (replace with your actual data)
 class_distribution = descriptive_df['Rush_Hour'].value_counts()
+
+# Define the labels manually
+labels = {0: 'Not a Rush Hour', 1: 'Rush Hour'}
+
+# Plot the pie chart
 plt.figure(figsize=(8, 8))
-plt.pie(class_distribution, labels=class_distribution.index, autopct='%1.1f%%')
-plt.title('Rush_Hour')
+plt.pie(class_distribution, labels=[labels[i] for i in class_distribution.index], autopct='%1.1f%%')
+plt.title('Rush Hour')
+
+# Add the legend
+plt.legend(title="Rush Hour", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
 plt.ylabel('')  # Hide the y-label
 plt.show()
 
@@ -872,65 +864,59 @@ for n, x in enumerate([*cross_tab.index.values]):
 
 plt.show()
 
+sns.countplot(x='Police_Region', data=descriptive_df)
+plt.show()
 
+# Calculate counts
+counts = descriptive_df.groupby(['Police_Region', 'Accident_Severity']).size().reset_index(name='count')
 
+# Calculate proportions
+total_counts = counts.groupby('Police_Region')['count'].transform('sum')
+counts['proportions'] = counts['count'] / total_counts
 
+sns.barplot(x='Police_Region', y='proportions', hue='Accident_Severity', data=counts)
+plt.title('Proportional Bar Plot of Police_Region')
+plt.show()
 
-"""**Target Encoding**"""
+"""Urban_or_Rural_Area"""
 
+import seaborn as sns
+import matplotlib.pyplot as plt
 
+# Mapping dictionary
+label_mapping = {0: 'Rural', 1: 'Urban'}
 
-!pip install category_encoders
+# Replace values with labels
+descriptive_df['Urban_or_Rural_Area'] = descriptive_df['Urban_or_Rural_Area'].map(label_mapping)
 
-X_train.info()
+# Create counts DataFrame
+counts = descriptive_df['Urban_or_Rural_Area'].value_counts().reset_index()
+counts.columns = ['Urban_or_Rural_Area', 'Count']
 
-y_train
+# Plot
+plt.figure(figsize=(10, 6))
+barplot = sns.barplot(x='Urban_or_Rural_Area', y='Count', data=counts)
 
+# Annotate bars with count values
+for p in barplot.patches:
+    barplot.annotate(f'{p.get_height()}', (p.get_x() + p.get_width() / 2., p.get_height()),
+                     ha='center', va='center', xytext=(0, 5),
+                     textcoords='offset points')
 
+plt.title('Bar Plot with Custom Labels and Count Annotations')
+plt.xlabel('Urban or Rural Area')
+plt.ylabel('Count')
+plt.show()
 
-import category_encoders as ce
+counts = descriptive_df.groupby(['Urban_or_Rural_Area', 'Accident_Severity']).size().reset_index(name='count')
 
-target = 'Accident_Severity'
+# Calculate proportions
+total_counts = counts.groupby('Urban_or_Rural_Area')['count'].transform('sum')
+counts['proportions'] = counts['count'] / total_counts
 
-# List of categorical columns
-categorical_columns = [
-    'Day_of_Week',
-    'Junction_Control',
-    'Junction_Detail',
-    'Light_Conditions',
-    'Carriageway_Hazards',
-    'Police_Region',
-    'Road_Surface_Conditions',
-    'Road_Type',
-    'Urban_or_Rural_Area',
-    'Weather_Conditions',
-    'Vehicle_Type',
-    'Month',
-    'Rush_Hour'
-]
-
-from sklearn.preprocessing import LabelEncoder
-
-# Initialize LabelEncoder for the target variable
-severity_mapping = {'Slight': 1, 'Serious': 2, 'Fatal': 3}
-df['Accident_Severity'] = df['Accident_Severity'].map(severity_mapping)
-
-
-# Initialize TargetEncoder
-encoder = ce.TargetEncoder(cols=categorical_columns)
-
-# Fit and transform the categorical columns
-X_train_encoded = encoder.fit_transform(X_train[categorical_columns], y_train_encoded)
-
-# Combine the encoded columns with the rest of the DataFrame
-combined_data = pd.concat([X_train.drop(columns=categorical_columns), X_train_encoded], axis=1)
-
-# Check the resulting DataFrame
-print(combined_data.head())
-
-combined_data
-
-
+sns.barplot(x='Urban_or_Rural_Area', y='proportions', hue='Accident_Severity', data=counts)
+plt.title('Proportional Bar Plot of Urban_or_Rural_Area')
+plt.show()
 
 
 
@@ -952,10 +938,6 @@ combined_data.isnull().sum()
 
 
 
-
-
-
-
 """**Factor Analysis**"""
 
 !pip install factor_analyzer
@@ -971,195 +953,6 @@ KMO Test measures the proportion of variance that might be a common variance amo
 from factor_analyzer.factor_analyzer import calculate_kmo
 kmo_vars,kmo_model = calculate_kmo(combined_data)
 print(kmo_model)
-
-
-
-from factor_analyzer import FactorAnalyzer
-import matplotlib.pyplot as plt
-
-fa = FactorAnalyzer(rotation = None,n_factors=X_train.shape[1])
-fa.fit(combined_data)
-ev,_ = fa.get_eigenvalues()
-print(ev)
-
-plt.scatter(range(1,X_train.shape[1]+1),ev)
-plt.plot(range(1,X_train.shape[1]+1),ev)
-plt.title('Scree Plot')
-plt.xlabel('Factors')
-plt.ylabel('Eigen Value')
-plt.grid()
-
-corr_matrix = X_train.corr()
-print(corr_matrix)
-
-
-
-fa = FactorAnalyzer(n_factors=4,rotation='varimax')
-fa.fit(X_train)
-print(pd.DataFrame(fa.loadings_,index=X_train.columns))
-
-print(pd.DataFrame(fa.get_factor_variance(),index=['Variance','Proportional Var','Cumulative Var']))
-
-
-
-
-
-print(pd.DataFrame(fa.get_communalities(),index=X_train.columns,columns=['Communalities']))
-
-!pip install mpl-axes-aligner
-import mpl_axes_aligner
-
-scores = fa.fit_transform(X_train)
-
-# Get the scores dataframe
-dfScores = pd.DataFrame(fa.fit_transform(X_train), columns=['Factor'+str(i) for i in range(1, fa.n_factors+1)])
-
-# Get the loadings dataframe
-dfLoadings = pd.DataFrame(fa.loadings_, columns=['Factor'+str(i) for i in range(1, fa.n_factors+1)], index=X_train.columns)
-
-scores.shape
-
-dfScores
-
-# Get the loadings dataframe
-dfLoadings
-
-
-
-df.head()
-
-
-
-
-
-loadings=fa.loadings_
-loadings
-
-dfLoadings
-
-
-
-import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-
-# Assume loadings is a NumPy array with shape (n_features, n_factors)
-# Extract loadings for the first three factors
-xs = loadings[:, 0]  # Loadings for Factor 1
-ys = loadings[:, 1]  # Loadings for Factor 2
-zs = loadings[:, 2]  # Loadings for Factor 3
-
-# Feature names
-feature_names = ['Day_of_Week', 'Junction_Control', 'Junction_Detail',
-                  'Light_Conditions', 'Local_Authority_(District)', 'Carriageway_Hazards',
-                  'Police_Force', 'Road_Surface_Conditions', 'Road_Type', 'Urban_or_Rural_Area',
-                  'Weather_Conditions', 'Vehicle_Type', 'Time Segment', 'Month',
-                  'Number_of_Casualties', 'Number_of_Vehicles', 'Speed_limit']
-
-# Create 3D scatter plot
-fig = plt.figure(figsize=(15, 10))
-ax = fig.add_subplot(111, projection='3d')
-
-# Scatter plot
-ax.scatter(xs, ys, zs, s=100, c='b', marker='o')
-
-# Add arrows and labels
-for i, feature in enumerate(feature_names):
-    ax.quiver(0, 0, 0, xs[i], ys[i], zs[i], color='r', arrow_length_ratio=0.1)
-    ax.text(xs[i], ys[i], zs[i], feature, fontsize=8)
-
-# Define the axes
-ax.set_xlabel('Factor 1')
-ax.set_ylabel('Factor 2')
-ax.set_zlabel('Factor 3')
-
-plt.title('3D Loading Plot')
-plt.show()
-
-import numpy as np
-import seaborn as sns
-sns.set()
-
-xs = loadings[:,0]
-ys = loadings[:,1]
-
-feature_names = ['Day_of_Week', 'Junction_Control',
-       'Junction_Detail',  'Light_Conditions',
-       'Local_Authority_(District)', 'Carriageway_Hazards', 'Police_Force',
-       'Road_Surface_Conditions', 'Road_Type', 'Urban_or_Rural_Area',
-       'Weather_Conditions', 'Vehicle_Type','Time Segment', 'Month','Number_of_Casualties','Number_of_Vehicles','Speed_limit']
-
-plt.figure(figsize=(15, 8))
-# Plot the loadings on a scatterplot
-for i, varnames in enumerate(feature_names):
-    plt.scatter(xs[i], ys[i], s=200)
-    plt.arrow(
-        0, 0, # coordinates of arrow base
-        xs[i], # length of the arrow along x
-        ys[i], # length of the arrow along y
-        color='r',
-        head_width=0.01
-        )
-    plt.text(xs[i], ys[i], varnames, fontsize=8)
-
-# Define the axes
-
-xticks = np.linspace(-0.8, 0.8, num=5)
-yticks = np.linspace(-0.8, 0.8, num=5)
-
-plt.xticks(xticks)
-plt.yticks(yticks)
-plt.xlabel('Factor1')
-plt.ylabel('Factor2')
-
-
-# Show plot
-
-plt.title('2D Loading plot')
-plt.show()
-
-
-
-
-
-
-
-from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
-
-kmeans_kwargs = {"init": "random","n_init": 10,"max_iter": 10,"random_state": 42}
-
-sse = []
-for k in range(1, 18):
-  kmeans = KMeans(n_clusters=k)
-  kmeans.fit(dfScores)
-  sse.append(kmeans.inertia_)
-
-plt.plot(range(1, 18), sse)
-plt.xticks(range(1, 18))
-plt.xlabel("Number of Clusters")
-plt.ylabel("SSE")
-plt.show()
-
-df_selected = dfScores.sample(n=70000, random_state=1)
-
-from sklearn.cluster import KMeans
-silhouette_coefficients = []
-for k in range(2, 15):
-  kmeans = KMeans(n_clusters=k)
-  kmeans.fit(df_selected)
-  score = silhouette_score(df_selected, kmeans.labels_, random_state=200)
-  silhouette_coefficients.append(score)
-
-silhouette_coefficients
-
-
-
-plt.plot(range(2, 15), silhouette_coefficients)
-plt.xticks(range(2, 15))
-plt.xlabel("Number of Clusters")
-plt.ylabel("Silhouette Coefficient")
-plt.show()
 
 
 
