@@ -130,11 +130,6 @@ def run():
     )
     
 
-    
-    ## For weather
-    weather_display = ('Fine no high winds','Fine with high winds','Raining no high winds','Raining with high winds','Snowing no high winds','Snowing and high winds','Fog or mist','Other')
-    weather_options = list(range(len(weather_display)))
-    weather= st.selectbox("Weather Condition :", weather_options, format_func=lambda x: weather_display[x])
 
     ## Road type
     road_display = ('Single carriageway','Dual carriageway','Roundabout','One way street','Slip road')
@@ -155,34 +150,7 @@ def run():
     junction = st.selectbox("Road Type ",junction_options, format_func=lambda x: junction_display[x])
 
 
-    # Time Picker for Accident Time
-    accident_time = st.time_input("Accident Time", datetime.now().time())
 
-    # Define rush hour periods
-    rush_hour_start = datetime.strptime("07:00", "%H:%M").time()
-    rush_hour_end = datetime.strptime("10:00", "%H:%M").time()
-    evening_rush_hour_start = datetime.strptime("16:00", "%H:%M").time()
-    evening_rush_hour_end = datetime.strptime("20:00", "%H:%M").time()
-
-    # Determine rush hour status
-    if (rush_hour_start <= accident_time <= rush_hour_end) or (evening_rush_hour_start <= accident_time <= evening_rush_hour_end):
-        rush_hour_status = 'Rush Hour'
-    else:
-        rush_hour_status = 'Non-Rush Hour'
-
-    # Display rush hour status with light grey color
-    st.markdown(f"<p style='color: lightgrey;'>Traffic Condition During Accident: {rush_hour_status}</p>", unsafe_allow_html=True)
-
-
-    urban_display = st.radio(
-        "Urban-Rural Status :",
-        ('Rural','Urban')
-    )
-
-    
-
-    # File Upload
-    uploaded_file = st.file_uploader("Upload Evidence (e.g. documents , images of the accident)", type=['jpg', 'png', 'pdf'])
 
 
 
