@@ -5,7 +5,10 @@ from datetime import datetime  # Import datetime
 import joblib
 
 #pipeline = joblib.load('./pipeline_important.pkl')
-pipeline = pickle.load(open('./pipeline_important.pkl', 'rb'))
+#pipeline = pickle.load(open('./pipeline_important.pkl', 'rb'))
+
+with open('pipeline_important.pkl', 'rb') as file:
+    pipeline = pickle.load(file)
 
 def run():
     st.set_page_config(layout="wide")
