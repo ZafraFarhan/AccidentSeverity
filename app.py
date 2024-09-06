@@ -1,10 +1,10 @@
 import streamlit as st
-
+import pandas as pd
 from PIL import Image
 from datetime import datetime  # Import datetime
-import pickle
+import joblib
 
-model = pickle.load(open('./pipeline_important.pkl', 'rb'))
+pipeline = joblib.load('pipeline_important.pkl')
 
 def run():
     st.set_page_config(layout="wide")
@@ -109,8 +109,9 @@ def run():
         "Average Speed (km/h):",
         min_value=0,
         max_value=200,
-        step=5,
-        value=60
+        step=10,
+        value=0,
+        format="%d"
     )
     
     # Vehicle type selection using radio buttons
@@ -120,56 +121,81 @@ def run():
     )
 
     # Number of casualties in the accident
-    Number_of_Casualties = st.number_input(
+    Number_of_Casualties = st.slider(
         "Number of Casualties:",
         min_value=0,
-        max_value=100,
+        max_value=40,
         step=1,
-        value=0
+        value=0,
+        format="%d"
     )
     
     
     # Number of vehicles involved in the accident
     Number_of_Vehicles = st.slider(
         "Number of Vehicles Involved:",
-        min_value=1,
-        max_value=5,
+        min_value=0,
+        max_value=40,
         step=1,
         value=1,
         format="%d"  # Ensures that the displayed value is an integer
     )
     
     ## Road type
-    road_display = ('Single carriageway','Dual carriageway','Roundabout','One way street','Slip road')
+    road_display = ('Single carriageway','Dual carriageway','Roundabout','One way street','Slip road','Other')
     road_options = list(range(len(road_display)))
     Road_Type = st.selectbox("Road Type ",road_options, format_func=lambda x: road_display[x])
 
     ## For road surface condition
-    road_surface_display = ('Dry','Wet or damp','Snow')
+    road_surface_display = ('Dry','Wet or damp','Snow','Frost or ice','Flood over 3cm','Other')
     surface_options = list(range(len(road_surface_display)))
     Road_Surface_Conditions= st.selectbox("Road Surface Condition :", surface_options, format_func=lambda x: road_surface_display[x])
 
     ## Junction Detail
     junction_display = ('T or staggered junction', 'Crossroads',
        'Not at junction or within 20 metres', 'Roundabout',
-       'Mini-roundabout', 'More than 4 arms (not roundabout)',
-       'Private drive or entrance', 'Slip road', 'Other junction')
+       'Private drive or entrance', 'Other')
     junction_options = list(range(len(junction_display)))
-    Junction_Detail = st.selectbox("Road Type ",junction_options, format_func=lambda x: junction_display[x])
+    Junction_Detail = st.selectbox("Junction_Detail",junction_options, format_func=lambda x: junction_display[x])
 
     ## For urban rural status
     urban_display = ('Rural','Urban')
     urban_options = list(range(len(urban_display)))
     Urban_or_Rural_Area = st.selectbox("Urban-Rural Status :",urban_options, format_func=lambda x: urban_display[x])
 
+    def make_prediction(input_data):
+        # Convert input data to DataFrame
+        input_df = pd.DataFrame([input_data])
+        
+        # Print the input data for debugging
+        print("Input Data:\n", input_df)
+        
+        # Make prediction using the loaded pipeline
+        prediction = pipeline.predict(input_df)
+        
+        # Print the prediction for debugging
+        print("Prediction:\n", prediction)
+        
+        return prediction
+
+
+    input_data = {
+        'Number_of_Vehicles': Number_of_Vehicles, 
+        'Speed_limit': Speed_limit,
+        'Urban_or_Rural_Area': Urban_or_Rural_Area, 
+        'Road_Surface_Conditions': Road_Surface_Conditions,
+        'Junction_Detail': Junction_Detail,
+        'Number_of_Casualties': Number_of_Casualties,
+        'Road_Type': Road_Type
+    }
 
     if st.button('Predict Severity'):
-        features = [[Number_of_Vehicles, Speed_limit, Urban_or_Rural_Area, Number_of_Casualties, Junction_Detail, Road_Surface_Conditions, Road_Type]]
-        prediction = model.predict(features)
+        prediction = make_prediction(input_data)
+        print("Prediction:", prediction)
         
-        if prediction == 0:
+        if prediction[0] == 0:
             st.write("The accident severity is predicted to be low.")
         else:
-            st.write("The accident severity is predicted to be medium/ high")
-    
+            st.write("The accident severity is predicted to be medium/high")
+        
 run()
