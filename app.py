@@ -4,7 +4,7 @@ from PIL import Image
 from datetime import datetime  # Import datetime
 import pickle
 
-#model = pickle.load(open('./Model/ML_Model.pkl', 'rb'))
+model = pickle.load(open('./pipeline_important.pkl', 'rb'))
 
 def run():
     st.set_page_config(layout="wide")
@@ -18,11 +18,11 @@ def run():
         <style>
             body {
                 background-color: #000000;  /* Black background color */
-                color: #ffffff;  /* Set text color to white */
+                
             }
             .stApp {
                 background-color: #000000;  /* Set background to black for the app */
-                color: #ffffff;  /* Set font color to white for the app */
+                
             }
             h1, h2, h3, h4, h5, h6, p, li, a {
                 color: #ffffff;  /* Set font color to white for all text elements */
@@ -69,6 +69,16 @@ def run():
             .nav-links li:hover::after {
                 transform: scaleX(1);
             }
+            .button {
+                color: black; /* Button text color */
+                border: none;
+                padding: 10px 20px;
+                text-align: center;
+                text-decoration: none;
+                display: inline-block;
+                
+            }
+                
         </style>
     </head>
     """, unsafe_allow_html=True)
@@ -95,7 +105,7 @@ def run():
     st.header("Accident Details")
 
     # Speed input using a slider for better interactivity
-    speed = st.slider(
+    Speed_limit = st.slider(
         "Average Speed (km/h):",
         min_value=0,
         max_value=200,
@@ -110,7 +120,7 @@ def run():
     )
 
     # Number of casualties in the accident
-    num_casualties = st.number_input(
+    Number_of_Casualties = st.number_input(
         "Number of Casualties:",
         min_value=0,
         max_value=100,
@@ -120,7 +130,7 @@ def run():
     
     
     # Number of vehicles involved in the accident
-    num_vehicles = st.slider(
+    Number_of_Vehicles = st.slider(
         "Number of Vehicles Involved:",
         min_value=1,
         max_value=5,
@@ -129,17 +139,15 @@ def run():
         format="%d"  # Ensures that the displayed value is an integer
     )
     
-
-
     ## Road type
     road_display = ('Single carriageway','Dual carriageway','Roundabout','One way street','Slip road')
     road_options = list(range(len(road_display)))
-    road = st.selectbox("Road Type ",road_options, format_func=lambda x: road_display[x])
+    Road_Type = st.selectbox("Road Type ",road_options, format_func=lambda x: road_display[x])
 
     ## For road surface condition
     road_surface_display = ('Dry','Wet or damp','Snow')
     surface_options = list(range(len(road_surface_display)))
-    surface= st.selectbox("Road Surface Condition :", surface_options, format_func=lambda x: road_surface_display[x])
+    Road_Surface_Conditions= st.selectbox("Road Surface Condition :", surface_options, format_func=lambda x: road_surface_display[x])
 
     ## Junction Detail
     junction_display = ('T or staggered junction', 'Crossroads',
@@ -147,14 +155,21 @@ def run():
        'Mini-roundabout', 'More than 4 arms (not roundabout)',
        'Private drive or entrance', 'Slip road', 'Other junction')
     junction_options = list(range(len(junction_display)))
-    junction = st.selectbox("Road Type ",junction_options, format_func=lambda x: junction_display[x])
+    Junction_Detail = st.selectbox("Road Type ",junction_options, format_func=lambda x: junction_display[x])
 
-
-
-
+    ## For urban rural status
+    urban_display = ('Rural','Urban')
+    urban_options = list(range(len(urban_display)))
+    Urban_or_Rural_Area = st.selectbox("Urban-Rural Status :",urban_options, format_func=lambda x: urban_display[x])
 
 
     if st.button('Predict Severity'):
-        st.write("Prediction functionality will be implemented here.")
+        features = [[Number_of_Vehicles, Speed_limit, Urban_or_Rural_Area, Number_of_Casualties, Junction_Detail, Road_Surface_Conditions, Road_Type]]
+        prediction = model.predict(features)
+        
+        if prediction == 0:
+            st.write("The accident severity is predicted to be low.")
+        else:
+            st.write("The accident severity is predicted to be medium/ high")
     
 run()
