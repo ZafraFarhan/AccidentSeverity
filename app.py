@@ -4,7 +4,8 @@ from PIL import Image
 from datetime import datetime  # Import datetime
 import joblib
 
-pipeline = joblib.load('./pipeline_important.pkl')
+#pipeline = joblib.load('./pipeline_important.pkl')
+pipeline = pickle.load(open('./pipeline_important.pkl', 'rb'))
 
 def run():
     st.set_page_config(layout="wide")
