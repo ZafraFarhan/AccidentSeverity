@@ -8,3 +8,7 @@ Pillow
 seaborn
 xgboost
 category_encoders
+joblib==1.2.0
+xgboost==1.8.0
+category_encoders==2.6.0
+
