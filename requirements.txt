@@ -9,5 +9,5 @@ seaborn
 xgboost
 category_encoders
 joblib==1.2.0
-category_encoders==2.6.0
+
 
